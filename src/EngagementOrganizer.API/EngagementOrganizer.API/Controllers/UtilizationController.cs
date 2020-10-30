@@ -39,7 +39,7 @@ namespace EngagementOrganizer.API.Controllers
         {
             var DateStart = new DateTime(year - 1, 7, 1);
             var DateEnd = new DateTime(year, 6, 30);
-            var appointments = _context.Appointments.Where(a => a.Confirmed == true && a.Type.Billable == true && a.EndDate >= DateStart && a.StartDate <= DateEnd).ToList();
+            var appointments = _context.Appointments.Where(a => a.Type.Billable == true && a.EndDate >= DateStart && a.StartDate <= DateEnd).ToList();
             var utilization = new Utilization()
             {
                 UtilizationMonths = new List<UtilizationRow>(),
