@@ -5,6 +5,8 @@ import { AppointmentType, CustomersService, Customer, AppointmentsService, Appoi
 import * as moment from 'moment';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { DateTimeUtils } from '../utils/dateTimeUtils';
+import { Calendar } from '../api/EngagementOrganizerApiClient/model/calendar';
 
 
 @Component({
@@ -13,6 +15,11 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
   styleUrls: ['./appointment-editor.component.scss']
 })
 export class AppointmentEditorComponent implements OnInit {
+  route: ActivatedRoute
+  currentAppointment: AppointmentViewModel
+  appointmentsType: Array<AppointmentType>
+  customers: Array<Customer>
+  calendars: Array<Calendar>;
 
   constructor(
     private router: Router,
@@ -23,12 +30,13 @@ export class AppointmentEditorComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: { route: ActivatedRoute, currentAppointment: AppointmentViewModel }) {
     this.currentAppointment = this.data.currentAppointment;
     this.route = this.data.route
+    this.calendars = this.route.snapshot.data.calendars;
   }
 
   ngOnInit() {
     this.appointmentTypeService.apiAppointmentTypesGet().subscribe(
       data => {
-        this.appointmentsType = data
+        this.appointmentsType = data.filter(x => x.id != 99);
       },
       (err) => {
         console.log(err.message);
@@ -56,13 +64,6 @@ export class AppointmentEditorComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  setToUtc(dateRef: Date): Date {
-    var d = new Date();
-    var drefT = moment(dateRef).toDate();
-    d.setUTCFullYear(drefT.getFullYear());
-    d.setUTCMonth(drefT.getMonth(), drefT.getDate());
-    return d;
-  }
 
   validateData(appToSend: Appointment) {
     if (appToSend.endDate < appToSend.startDate) {
@@ -77,13 +78,14 @@ export class AppointmentEditorComponent implements OnInit {
     appToSend.confirmed = this.currentAppointment.confirmed;
     appToSend.customerID = this.currentAppointment.customer;
     appToSend.note = this.currentAppointment.note;
-    appToSend.availabilityID=this.currentAppointment.availabilityID;
+    appToSend.availabilityID = this.currentAppointment.availabilityID;
     appToSend.requireTravel = this.currentAppointment.requireTravel;
     appToSend.project = this.currentAppointment.project;
     appToSend.travelBooked = this.currentAppointment.travelBooked;
     appToSend.typeID = this.currentAppointment.type;
-    appToSend.startDate = this.setToUtc(this.currentAppointment.startDate);
-    appToSend.endDate = this.setToUtc(this.currentAppointment.endDate);
+    appToSend.startDate = DateTimeUtils.setToUtc(this.currentAppointment.startDate);
+    appToSend.endDate = DateTimeUtils.setToUtc(this.currentAppointment.endDate);
+    appToSend.calendarName = this.currentAppointment.calendarName;
 
     if (!this.validateData(appToSend)) return;
 
@@ -124,7 +126,7 @@ export class AppointmentEditorComponent implements OnInit {
         (err) => {
           alert('Error while deleting appointment' + err.message);
         }
-      );;
+      );
     }
   }
 
@@ -132,12 +134,4 @@ export class AppointmentEditorComponent implements OnInit {
     this.currentAppointment.endDate = this.currentAppointment.startDate;
   }
 
-
-  route: ActivatedRoute
-
-  currentAppointment: AppointmentViewModel
-
-  appointmentsType: Array<AppointmentType>
-
-  customers: Array<Customer>
 }

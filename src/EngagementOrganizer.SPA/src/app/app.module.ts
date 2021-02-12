@@ -12,6 +12,8 @@ import { EventViewerComponent } from './event-viewer/event-viewer.component';
 import { ApiModule as EngagementOrganizerApiClient, Configuration, ConfigurationParameters } from './api/EngagementOrganizerApiClient';
 import { HttpClientModule } from '@angular/common/http';
 import { AppointmentEditorComponent } from './appointment-editor/appointment-editor.component';
+import { CalendarEditorComponent } from './calendar-editor/calendar-editor.component';
+import { AppointmentSummaryComponent } from './appointment-summary/appointment-summary.component';
 import { AppConfig } from './app.config';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FlexLayoutModule } from '@angular/flex-layout';
@@ -24,10 +26,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, MAT_DATE_FORMATS, DateAdapter } from '@angular/material/core';
 import { StyleManager } from './themes/style-manager';
-import { WarningResumeComponent } from './warning-resume/warning-resume.component'
+import { WarningResumeComponent } from './warning-resume/warning-resume.component';
+import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
+import { ColorPickerModule } from 'ngx-color-picker';
+import {MatProgressBarModule} from '@angular/material/progress-bar';
 
 //create our cost var with the information about the format that we want
 export const MY_FORMATS = {
@@ -67,6 +73,8 @@ export function createApiConfigFactory() {
     UtilizationComponent,
     EventViewerComponent,
     AppointmentEditorComponent,
+    CalendarEditorComponent,
+    AppointmentSummaryComponent,
     CustomerViewComponent,
     WarningResumeComponent
   ],
@@ -86,10 +94,16 @@ export function createApiConfigFactory() {
     MatDatepickerModule,
     MatNativeDateModule,
     CustomDialogModule,
-    EngagementOrganizerApiClient.forRoot(createApiConfigFactory)
+    MatIconModule,
+    EngagementOrganizerApiClient.forRoot(createApiConfigFactory),
+    NgxMatSelectSearchModule,
+    ColorPickerModule,
+    MatProgressBarModule
   ],
   entryComponents: [
-    AppointmentEditorComponent
+    AppointmentEditorComponent,
+    AppointmentSummaryComponent,
+    CalendarEditorComponent
   ],
   providers: [
     AppConfig,

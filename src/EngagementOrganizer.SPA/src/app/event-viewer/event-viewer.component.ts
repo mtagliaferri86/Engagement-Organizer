@@ -1,5 +1,10 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/internal/operators/filter';
 import { Appointment, AppointmentExtraInfo } from '../api/EngagementOrganizerApiClient';
+import { Calendar } from '../api/EngagementOrganizerApiClient/model/calendar';
+import { CalendarDisplay } from '../models/calendarDisplay';
+import { CalendarView } from '../models/calendarView';
 
 @Component({
   selector: 'app-event-viewer',
@@ -7,12 +12,22 @@ import { Appointment, AppointmentExtraInfo } from '../api/EngagementOrganizerApi
   styleUrls: ['./event-viewer.component.scss']
 })
 export class EventViewerComponent implements OnInit {
+  calendars: Array<Calendar>;
 
-  constructor() { }
+  constructor(
+    private route: ActivatedRoute
+  ) {
+  }
 
   ngOnInit() {
-
+    this.calendars = this.route.snapshot.data.calendars;
   }
+
+  @Input()
+  currentView: CalendarView = CalendarView.Year;
+
+  @Input()
+  selectedDisplay: CalendarDisplay = CalendarDisplay.Event;
 
   @Input()
   appointments: Array<AppointmentExtraInfo>;
@@ -27,12 +42,30 @@ export class EventViewerComponent implements OnInit {
   getEventStyle(app: AppointmentExtraInfo) {
     let col = '';
     let bkCol = '';
-    if (app.customerID != null) {
+    if (app.customerID != null || app.isFromUpstream) {
       col = app.customer.textColor;
       bkCol = app.customer.color;
     } else {
       col = app.type.textColor;
       bkCol = app.type.color;
+    }
+    let styles = {
+      'background-color': bkCol,
+      'color': col
+    };
+    return styles;
+  }
+
+
+  getCalendarStyle(app: AppointmentExtraInfo) {
+    let col = '';
+    let bkCol = '';
+    if (this.calendars && app.calendarName) {
+      var currentCalendar = this.calendars.find(x => x.calendarName == app.calendarName);
+      if (currentCalendar) {
+        col = currentCalendar.textColor;
+        bkCol = currentCalendar.color;
+      }
     }
     let styles = {
       'background-color': bkCol,
@@ -78,7 +111,7 @@ export class EventViewerComponent implements OnInit {
   }
 
   getEventDescription(app: AppointmentExtraInfo): string {
-    if (app.customerID != null) {
+    if (app.customerID != null || app.isFromUpstream) {
       return app.customer.shortDescription;
     } else {
       return app.type.shortDescription;
@@ -87,5 +120,13 @@ export class EventViewerComponent implements OnInit {
 
   trackByEventItems(index: number, item: AppointmentExtraInfo): number {
     return item.id;
+  }
+
+  public get calendarView(): typeof CalendarView {
+    return CalendarView;
+  }
+
+  public get calendarDisplay(): typeof CalendarDisplay {
+    return CalendarDisplay;
   }
 }
