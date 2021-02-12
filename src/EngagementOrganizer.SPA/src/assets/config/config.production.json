@@ -3,7 +3,7 @@
         "name": "PRODUCTION"
     },
     "api": {
-        "url": "",
-        "key": ""
+        "url": "https://app-eo-be.azurewebsites.net/",
+        "key": "hsidf578574yhfgfdbhdfg78t898978967fd89ydf89dfhjfdshjufds4"
     }
 }
