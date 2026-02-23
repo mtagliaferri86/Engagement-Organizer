@@ -1,38 +1,87 @@
-# ASP.NET Core (.NET Framework)
-# Build and test ASP.NET Core projects targeting the full .NET Framework.
-# Add steps that publish symbols, save build artifacts, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+# Azure DevOps - Angular CI (best practice)
+# - deterministic installs (npm ci)
+# - caching npm package tarballs with Cache@2
+# - use local Angular CLI via npx
+# - publish artifact from Build.ArtifactStagingDirectory
 
 trigger:
   branches:
     include:
-    - master
+      - master
   paths:
     include:
-    - src/Organizer.SPA/*
+      - src/Organizer.SPA/*
     exclude:
-    - pipelines/*
+      - pipelines/*
 
 pool:
   vmImage: 'windows-latest'
 
-steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x'
-  displayName: 'Install Node.js'
+variables:
+  nodeVersion: '20.x'
+  appDir: 'src/Organizer.SPA'
+  buildConfig: 'production'
+  # Artifact output folder (standard)
+  artifactDir: '$(Build.ArtifactStagingDirectory)\dist'
+  # npm cache folder (cache tarballs; safe with npm ci)
+  npmCacheDir: '$(Pipeline.Workspace)\.npm'
 
+steps:
+- checkout: self
+  fetchDepth: 1
+
+- task: NodeTool@0
+  displayName: 'Use Node.js $(nodeVersion)'
+  inputs:
+    versionSpec: '$(nodeVersion)'
+
+# Cache npm package downloads to speed up npm ci
+- task: Cache@2
+  displayName: 'Cache npm (package tarballs)'
+  inputs:
+    key: 'npm | "$(Agent.OS)" | $(Build.SourcesDirectory)\$(appDir)\package-lock.json'
+    restoreKeys: |
+      npm | "$(Agent.OS)"
+    path: '$(npmCacheDir)'
+
+# Deterministic install (preferred for CI)
 - task: PowerShell@2
-  displayName: 'Angular Build'
+  displayName: 'Install dependencies (npm ci)'
   inputs:
     targetType: 'inline'
     script: |
-      cd .\src\Organizer.SPA\
-      npm install
-      npm run build -- --prod --base-href ./ --outputPath=$(Pipeline.Workspace)/dist/ --configuration='production'
- 
-- task: PublishPipelineArtifact@1
+      $ErrorActionPreference = "Stop"
+      cd "$(Build.SourcesDirectory)\$(appDir)"
+
+      # Point npm to the pipeline cache folder and prefer offline when possible
+      npm config set cache "$(npmCacheDir)" --global
+      npm ci --prefer-offline
+
+# Build using local Angular CLI (npx) and modern flags
+- task: PowerShell@2
+  displayName: 'Build Angular'
   inputs:
-    targetPath: '$(Pipeline.Workspace)\dist\'
+    targetType: 'inline'
+    script: |
+      $ErrorActionPreference = "Stop"
+      cd "$(Build.SourcesDirectory)\$(appDir)"
+
+      # Helpful diagnostics
+      node --version
+      npm --version
+      npx ng version
+
+      # Ensure artifact output directory exists
+      New-Item -ItemType Directory -Force -Path "$(artifactDir)" | Out-Null
+
+      # --prod is deprecated/removed; use --configuration production
+      # CLI uses dash-case: --output-path
+      npx ng build --configuration="$(buildConfig)" --base-href ./ --output-path "$(artifactDir)"
+
+# Publish pipeline artifact
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Artifact Organizer.SPA'
+  inputs:
+    targetPath: '$(artifactDir)'
     artifact: 'Organizer.SPA'
     publishLocation: 'pipeline'
