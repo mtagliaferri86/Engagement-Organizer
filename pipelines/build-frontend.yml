@@ -21,7 +21,7 @@ variables:
   npmCacheDir: '$(Pipeline.Workspace)\.npm'
 
   # dist reale (da angular.json)
-  distDir: '$(Build.SourcesDirectory)\src\Organizer.SPA\dist\Organizer.SPA'
+  distDir: '$(Build.SourcesDirectory)\src\Organizer.SPA\dist\Organizer.SPA\browser'
 
   # zip finale
   zipPath: '$(Build.ArtifactStagingDirectory)\Organizer.SPA.zip'
