@@ -1,9 +1,3 @@
-# Azure DevOps - Angular CI (best practice)
-# - deterministic installs (npm ci)
-# - caching npm package tarballs with Cache@2
-# - use local Angular CLI via npx
-# - publish artifact from Build.ArtifactStagingDirectory
-
 trigger:
   branches:
     include:
@@ -20,31 +14,39 @@ pool:
 variables:
   nodeVersion: '20.x'
   appDir: 'src/Organizer.SPA'
+  ngProject: 'organizer'
   buildConfig: 'production'
-  # Artifact output folder (standard)
-  artifactDir: '$(Build.ArtifactStagingDirectory)\dist'
-  # npm cache folder (cache tarballs; safe with npm ci)
+
+  # npm cache (velocizza npm ci)
   npmCacheDir: '$(Pipeline.Workspace)\.npm'
 
+  # dist reale (da angular.json)
+  distDir: '$(Build.SourcesDirectory)\src\Organizer.SPA\dist\Organizer.SPA'
+
+  # zip finale
+  zipPath: '$(Build.ArtifactStagingDirectory)\Organizer.SPA.zip'
+
 steps:
+# checkout shallow
 - checkout: self
   fetchDepth: 1
 
+# Node.js
 - task: NodeTool@0
   displayName: 'Use Node.js $(nodeVersion)'
   inputs:
     versionSpec: '$(nodeVersion)'
 
-# Cache npm package downloads to speed up npm ci
+# Cache npm (tarball cache, safe con npm ci)
 - task: Cache@2
-  displayName: 'Cache npm (package tarballs)'
+  displayName: 'Cache npm'
   inputs:
     key: 'npm | "$(Agent.OS)" | $(Build.SourcesDirectory)\$(appDir)\package-lock.json'
     restoreKeys: |
       npm | "$(Agent.OS)"
     path: '$(npmCacheDir)'
 
-# Deterministic install (preferred for CI)
+# Install deps (deterministico)
 - task: PowerShell@2
   displayName: 'Install dependencies (npm ci)'
   inputs:
@@ -53,35 +55,51 @@ steps:
       $ErrorActionPreference = "Stop"
       cd "$(Build.SourcesDirectory)\$(appDir)"
 
-      # Point npm to the pipeline cache folder and prefer offline when possible
+      node --version
+      npm --version
+
       npm config set cache "$(npmCacheDir)" --global
       npm ci --prefer-offline
 
-# Build using local Angular CLI (npx) and modern flags
+# Build Angular
 - task: PowerShell@2
-  displayName: 'Build Angular'
+  displayName: 'Build Angular (organizer)'
   inputs:
     targetType: 'inline'
     script: |
       $ErrorActionPreference = "Stop"
       cd "$(Build.SourcesDirectory)\$(appDir)"
 
-      # Helpful diagnostics
-      node --version
-      npm --version
       npx ng version
+      npx ng build "$(ngProject)" --configuration "$(buildConfig)" --base-href ./
 
-      # Ensure artifact output directory exists
-      New-Item -ItemType Directory -Force -Path "$(artifactDir)" | Out-Null
-
-      # --prod is deprecated/removed; use --configuration production
-      # CLI uses dash-case: --output-path
-      npx ng build --configuration="$(buildConfig)" --base-href ./ --output-path "$(artifactDir)"
-
-# Publish pipeline artifact
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Artifact Organizer.SPA'
+# Verifica dist
+- task: PowerShell@2
+  displayName: 'Verify dist folder'
   inputs:
-    targetPath: '$(artifactDir)'
+    targetType: 'inline'
+    script: |
+      $ErrorActionPreference = "Stop"
+      if (!(Test-Path "$(distDir)")) {
+        Write-Error "Dist folder not found: $(distDir)"
+      }
+      Write-Host "Dist folder OK"
+      Get-ChildItem "$(distDir)"
+
+# ✅ CREA ZIP (best practice per Release pipeline)
+- task: ArchiveFiles@2
+  displayName: 'Archive Angular dist to ZIP'
+  inputs:
+    rootFolderOrFile: '$(distDir)'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(zipPath)'
+    replaceExistingArchive: true
+
+# ✅ Pubblica ZIP come artifact
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Artifact Organizer.SPA (ZIP)'
+  inputs:
+    targetPath: '$(zipPath)'
     artifact: 'Organizer.SPA'
     publishLocation: 'pipeline'
