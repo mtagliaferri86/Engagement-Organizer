@@ -19,6 +19,27 @@
   gap: $spacing-xs;
 }
 
+// --- Appointment Counter Badge ---
+.appointment-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 0.1875rem $spacing-sm;
+  border-radius: 0.75rem;
+  background-color: rgba(0, 0, 0, 0.08);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: inherit;
+
+  .counter-icon {
+    font-size: 1rem;
+    height: 1rem;
+    width: 1rem;
+    line-height: 1rem;
+  }
+}
+
 // --- Action Buttons ---
 .warning-button {
   margin-left: $spacing-sm !important;
@@ -85,6 +106,10 @@
     display: inline-flex;
   }
 
+  .mobile-only-counter {
+    display: inline-flex;
+  }
+
   #upstream-event-token {
     width: 6.875rem;
   }
@@ -113,6 +138,10 @@
 // --- Desktop Overrides (>= 768px) ---
 @media (min-width: $breakpoint-tablet) {
   .mobile-filters-fab {
+    display: none;
+  }
+
+  .mobile-only-counter {
     display: none;
   }
 

@@ -1,6 +1,9 @@
 <div class="mobile-filters-sheet">
   <div class="sheet-header">
     <h2>Filters & Actions</h2>
+    <span class="sheet-appointment-counter" [title]="data.appointmentsCount + ' days shown'">
+      <mat-icon>event_note</mat-icon>{{data.appointmentsCount}}
+    </span>
     <button mat-icon-button (click)="close()">
       <mat-icon>close</mat-icon>
     </button>
@@ -15,12 +18,12 @@
       Create Calendar
     </button>
     
-    <!-- Use injected Customer filter template -->
-    <ng-container *ngTemplateOutlet="data.customerFilterTemplate"></ng-container>
+    <!-- Use injected Appointment filter template -->
+    <ng-container *ngTemplateOutlet="data.appointmentFilterTemplate"></ng-container>
     
-    <button mat-raised-button color="primary" (click)="data.onClearCustomers(); close()">
+    <button mat-raised-button color="primary" (click)="data.onClearAppointmentDescriptions(); close()">
       <mat-icon>clear</mat-icon>
-      Clear Customer Filter
+      Clear Appointment Filter
     </button>
     
     @if (data.upstreamEventTokenEnabled) {

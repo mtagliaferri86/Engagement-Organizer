@@ -43,8 +43,8 @@ export class HomeComponent implements OnInit {
   selectedCalendar: string = "";
   selectedView: CalendarView = CalendarView.Year;
   selectedDisplay: CalendarDisplay = CalendarDisplay.Event;
-  selectedCustomers: string[];
-  filterSelectedCustomer: string;
+  selectedAppointmentDescriptions: string[];
+  filterSelectedAppointmentDescription: string;
 
   currentAppointment: AppointmentViewModel;
 
@@ -54,7 +54,7 @@ export class HomeComponent implements OnInit {
 
   // Template references for reusable filters
   @ViewChild('calendarFilterTemplate', { static: false }) calendarFilterTemplate: TemplateRef<any>;
-  @ViewChild('customerFilterTemplate', { static: false }) customerFilterTemplate: TemplateRef<any>;
+  @ViewChild('appointmentFilterTemplate', { static: false }) appointmentFilterTemplate: TemplateRef<any>;
 
   constructor(
     private router: Router,
@@ -81,23 +81,24 @@ export class HomeComponent implements OnInit {
       data: {
         selectedCalendar: this.selectedCalendar,
         calendars: this.calendars,
-        selectedCustomers: this.selectedCustomers,
-        customers: this.getAppointmentCustomers(),
-        filterSelectedCustomer: this.filterSelectedCustomer,
+        selectedAppointmentDescriptions: this.selectedAppointmentDescriptions,
+        appointmentDescriptions: this.getAppointmentDescriptions(),
+        filterSelectedAppointmentDescription: this.filterSelectedAppointmentDescription,
         upstreamEventTokenEnabled: this.upstreamEventTokenEnabled,
         upstreamEventToken: this.upstreamEventToken,
         warningsCount: this.getWarnings().length,
+        appointmentsCount: this.getFilteredAppointmentsCount(),
         selectedDatesCount: this.selectedDates.size,
         selectedAppointmentsCount: this.selectedAppointments.size,
         
         // Pass template references for filter injection
         calendarFilterTemplate: this.calendarFilterTemplate,
-        customerFilterTemplate: this.customerFilterTemplate,
+        appointmentFilterTemplate: this.appointmentFilterTemplate,
         
         onCalendarChange: (value) => this.calendarSelected(value),
         onCreateCalendar: () => this.createCalendar(),
-        onCustomerChange: (event) => this.filterCustomerSelectedValueChange(event),
-        onClearCustomers: () => { this.selectedCustomers = []; this.applyInMemoryFilters(); },
+        onAppointmentDescriptionChange: (event) => this.filterAppointmentDescriptionSelectedValueChange(event),
+        onClearAppointmentDescriptions: () => { this.selectedAppointmentDescriptions = []; this.applyInMemoryFilters(); },
         onUpstreamTokenClick: () => this.showUpstreamEventTokenDialog(),
         onWarningsClick: () => this.showDialogWarning(),
         onAvailabilityClick: () => this.availability(),
@@ -369,32 +370,58 @@ export class HomeComponent implements OnInit {
     return CalendarDisplay;
   }
 
-  getAppointmentCustomers(): string[] {
+  getAppointmentDescriptions(): string[] {
     if (this.originalAppointments && this.originalAppointments.length > 0) {
-      return [...new Set(this.originalAppointments.filter(x => x.customer != null && (!this.filterSelectedCustomer || x.customer.shortDescription.toLowerCase().includes(this.filterSelectedCustomer.toLowerCase()))).map(x => x.customer.shortDescription))].sort();
+      return [...new Set(this.originalAppointments
+        .map(x => x.customer?.shortDescription ?? x.type?.shortDescription)
+        .filter(x => x != null && (!this.filterSelectedAppointmentDescription || x.toLowerCase().includes(this.filterSelectedAppointmentDescription.toLowerCase())))
+      )].sort();
     } else {
       return [];
     }
   }
 
   applyInMemoryFilters() {
-    if (this.selectedCustomers && this.selectedCustomers.length > 0) {
-      this.appointments = this.originalAppointments.filter(x => this.selectedCustomers.filter(y => y?.toLowerCase() == x.customer?.shortDescription?.toLowerCase()).length > 0);
+    if (this.selectedAppointmentDescriptions && this.selectedAppointmentDescriptions.length > 0) {
+      this.appointments = this.originalAppointments.filter(x => {
+        const shortDesc = x.customer?.shortDescription ?? x.type?.shortDescription;
+        return this.selectedAppointmentDescriptions.some(y => y?.toLowerCase() === shortDesc?.toLowerCase());
+      });
     } else {
       this.appointments = this.originalAppointments;
     }
   }
 
-  filterCustomerSelectedValueChange(event) {
+  filterAppointmentDescriptionSelectedValueChange(event) {
     this.applyInMemoryFilters()
   }
 
-  unselectAllCustomer(filterCustomer: MatSelect) {
-    filterCustomer.options.forEach((item: MatOption) => { item.deselect() })
+  getFilteredAppointmentsCount(): number {
+    if (!this.appointments) return 0;
+    const filtered = (this.filterProject != null && this.filterProject.trim() !== '')
+      ? this.appointments.filter(x =>
+          x.project != null && x.project.toLowerCase() === this.filterProject.toLowerCase()
+        )
+      : this.appointments;
+    return filtered.reduce((total, x) => {
+      if (x.startDate && x.endDate) {
+        const start = new Date(x.startDate);
+        const end = new Date(x.endDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        return total + Math.max(1, days);
+      }
+      return total + 1;
+    }, 0);
   }
 
-  clearCustomerFilter() {
-    this.selectedCustomers = [];
+  unselectAllAppointmentDescription(filterAppointment: MatSelect) {
+    filterAppointment.options.forEach((item: MatOption) => { item.deselect() })
+  }
+
+  clearAppointmentDescriptionFilter() {
+    this.selectedAppointmentDescriptions = [];
     this.applyInMemoryFilters();
   }
 
